@@ -28,4 +28,4 @@ funtions have been added to work in generation mode
 #define ISFALSEON misc.bf.u32[0]
 
 #include "h3zhou.h"
-#include "h4zhgxnzhou2zhou3.h"
+//#include "h4zhgxnzhou2zhou3.h"

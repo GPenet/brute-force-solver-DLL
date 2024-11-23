@@ -39,11 +39,12 @@ struct ZH_GLOBAL2 {
 struct ZH_GLOBAL { // global variables for the core brute force
 	int nsol, // count of sols found
 		lim, modevalid,// mode and limit for nsols
+		withknown,ntuak,// in mode 2 (get uas) work with known uas
 		single_applied,// new_single_in_Update,
 		icount, ntsol,
 		go_back;
 		//rdigit, loop, diag, modeguess , maxindex;
-	BF128  pairs,triplets,more3;
+	BF128  pairs,triplets,more3,*tuak;
 	ZH_GLOBAL();
 	inline void Init(int maxsols,int mvalid=0){
 		nsol = go_back=0;

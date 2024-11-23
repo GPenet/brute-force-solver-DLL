@@ -20,13 +20,11 @@ The copyright is not specified.
 #include "sk0__h.h"
 #include "sk0_loads_cpp.h"
 #include "sk0__hext.h"
-#include "bf128_cpp.h"
+//#include "bf128_cpp.h"
 
 #include "Zhdll.h"
 #include "Zhtables_cpp.h" // also describes the pattern
-#ifdef ISBUIDON
-#include "Zhn_doc_debug_cpp.h"
-#endif 
+
 
 //#define DIAG
  
@@ -36,29 +34,54 @@ ZH_GLOBAL2 zh_g2;
 ZH_GLOBAL zh_g;
 ZHOU  zhou_ip;//
 ZHOU zhou[50]; // must host main brute force plus minimality analysis and recursive generation
-
+/*
 extern "C" __declspec(dllexport) int SkbfCheckValidityQuick(char* puzzle);
 extern "C" __declspec(dllexport) int SkbfGetFloorsSols(int* puzzle ,int floors);
 extern "C" __declspec(dllexport) int SkbfCheckOkForSol(int* sol, GINT16* t, int n);
 extern "C" __declspec(dllexport) ZHE* SkbfGetZhePointer();
+extern "C" __declspec(dllexport) void SkbfKnown(BF128* t, int n);
+*/
 
+#ifdef ISBUIDON
+#include "Zhn_doc_debug_cpp.h"
 
+void ZHOU::GetFirstMap(char* puzzle) {
+	zh_g.Init(1);// maxsols=1
+	zh_g.Go_InitSudoku(puzzle);
+	ImageCandidats();
+}
+void GetFirstMap(char* puzzle) {
+	zhou[0].GetFirstMap(puzzle);
+}
+#else
+extern "C" __declspec(dllexport) int SkbfCheckValidityQuick(char* puzzle);
+extern "C" __declspec(dllexport) int SkbfGetFloorsSols(int* puzzle, int floors);
+extern "C" __declspec(dllexport) int SkbfCheckOkForSol(int* sol, GINT16 * t, int n);
+extern "C" __declspec(dllexport) ZHE * SkbfGetZhePointer();
+extern "C" __declspec(dllexport) void SkbfKnown(BF128 * t, int n);
+#include "bf128_cpp.h"
+
+#endif 
 //=============== entries 
 int SkbfCheckValidityQuick(char* puzzle) {
 	return zhou[0].CheckValidityQuick(puzzle);
 }
-int SkbfGetFloorsSols(int* puzzle ,int floors) {
-	return zhou[0].GetFloorsSols(puzzle,floors);
+void SkbfKnown(BF128* t, int n) {
+	zh_g.tuak = t; zh_g.ntuak = n;
 }
-int SkbfCheckOkForSol(int* sol, GINT16* t, int n) {
-	return zhou[0].CheckOkForSol(sol, t,n);
+int SkbfGetFloorsSols(int* puzzle ,int floors,int withknown) {
+	return zhou[0].GetFloorsSols(puzzle,floors,withknown);
 }
-ZHE* SkbfGetZhePointer() {	return &zhe;}
+int SkbfCheckOkForSol(int* sol, GINT16* t, int n, int withknown) {
+	return zhou[0].CheckOkForSol(sol, t,n, withknown);
+}
 
+
+ZHE* SkbfGetZhePointer() {	return &zhe;}
 
 ZH_GLOBAL::ZH_GLOBAL() {
 	//diag = 0;
-	modevalid = 0;
+	modevalid = withknown = ntuak = 0;
 	//modeguess = 1;
 	zh_g2.zsol = 0; // no solution unless required buy the user
 	zh_g2.ntu_user = 0; // no solution unless required buy the user
@@ -146,6 +169,11 @@ void ZH_GLOBAL::ValidPuzzle(ZHOU * z){
 		zhe.GetGsol(z);
 		//cout << " b" << endl;
 		if (zhe.GetWpat()) {
+			if (withknown && ntuak) {// forget if not all uas hit
+				for (int i = 0; i < ntuak; i++)
+					if (tuak[i].isSubsetOf(zhe.wpat)) return; // known subset
+				//if ((zhe.wpat & tuak[i]).isEmpty()) return; // known subset
+			}
 			//zhe.wpat.PrintUa();
 			zhe.AddPat();
 		}
@@ -208,10 +236,11 @@ int ZHOU::CheckValidityQuick(char* puzzle) {
 	return zh_g.nsol;
 }
 
-int ZHOU::GetFloorsSols(int * puz, int floors) {
+int ZHOU::GetFloorsSols(int * sol, int floors,int withknown) {
 	//cout << "_________________ floors " << floors << endl;
-	zhe.grid0 = puz;
-	if (_popcnt32(floors) > 3) return 0;// done for 2/digits at most
+	zh_g.withknown = withknown;
+	zhe.grid0 = sol;
+	//if (_popcnt32(floors) > 3) return 0;// done for 2/digits at most
 	zh_g.Init(100,2);// maxsols=100, mode=2
 	zhe.npat = 0;
 	BF128 Digit_cell_Assigned[9], pat;
@@ -219,7 +248,7 @@ int ZHOU::GetFloorsSols(int * puz, int floors) {
 	pat = Digit_cell_Assigned[0];// 
 	memcpy(this, zhoustart, sizeof zhoustart);
 	for (int ic = 0; ic < 81; ic++) {
-		int dig = puz[ic], bcell = 1 <<dig,xcell= C_To128[ic];
+		int dig = sol[ic], bcell = 1 <<dig,xcell= C_To128[ic];
 		if (bcell & floors) {// one of the digits to keep
 			pat.Set(xcell);// is in the full UA
 			continue;
@@ -240,7 +269,8 @@ int ZHOU::GetFloorsSols(int * puz, int floors) {
 	//if(zhe.npat!=1)cout << "found npat" << zhe.npat << endl;
 	return zhe.npat;
 }
-int  ZHOU::CheckOkForSol(int* sol, GINT16* t, int n) {
+int  ZHOU::CheckOkForSol(int* sol, GINT16* t, int n, int withknown) {
+	zh_g.withknown = withknown;
 	zhe.grid0 = sol;
 	zh_g.Init(100, 2);// maxsols=100, mode=2
 	zhe.npat = 0;

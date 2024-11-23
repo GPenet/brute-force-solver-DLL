@@ -4,9 +4,8 @@ struct ZHOU{// size 32 bytes
 	BF128 cells_unsolved,misc;// misc used to check false
 //________________________________________
 	int CheckValidityQuick(char *puzzle);
-	int GetFloorsSols(int* puzzle,int floors);
-	int CheckOkForSol(int* sol, GINT16* t, int n);
-
+	int GetFloorsSols(int* puzzle,int floors,int withknown=0);
+	int CheckOkForSol(int* sol, GINT16* t, int n, int withknown = 0);
 	int FullUpdate();
 	int ApplySingleOrEmptyCells();
 	void Guess();
@@ -22,9 +21,12 @@ struct ZHOU{// size 32 bytes
 	inline int Unsolved_Count(){ return cells_unsolved.Count(); }
 	inline void ComputeNext(){ 	if (FullUpdate())Guess();}
 
+#ifdef ISBUIDON
 	// debugging code or print code
 	int GetAllDigits(int cell);
 	void ImageCandidats();
+	void GetFirstMap(char* puzzle);
+#endif 
 
 
  };
